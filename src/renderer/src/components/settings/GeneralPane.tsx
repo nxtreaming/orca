@@ -550,6 +550,41 @@ export function GeneralPane({ settings, updateSettings }: GeneralPaneProps): Rea
         </SearchableSetting>
 
         <SearchableSetting
+          title="Default Diff File Tree"
+          description="Show or hide the file tree when opening combined diff views."
+          keywords={['diff', 'tree', 'file tree', 'combined diff', 'sidebar']}
+          className="flex flex-col items-start gap-3 px-1 py-2 sm:flex-row sm:items-center sm:justify-between"
+        >
+          <div className="space-y-0.5">
+            <Label>Default Diff File Tree</Label>
+            <p className="text-xs text-muted-foreground">
+              Show or hide the file tree when opening combined diff views.
+            </p>
+          </div>
+          <div className="flex shrink-0 items-center rounded-md border border-border/60 bg-background/50 p-0.5">
+            {[
+              { label: 'Shown', value: true },
+              { label: 'Hidden', value: false }
+            ].map((option) => (
+              <button
+                key={option.label}
+                type="button"
+                onClick={() =>
+                  updateSettings({ combinedDiffFileTreeVisibleByDefault: option.value })
+                }
+                className={`rounded-sm px-3 py-1 text-sm transition-colors ${
+                  settings.combinedDiffFileTreeVisibleByDefault === option.value
+                    ? 'bg-accent font-medium text-accent-foreground'
+                    : 'text-muted-foreground hover:text-foreground'
+                }`}
+              >
+                {option.label}
+              </button>
+            ))}
+          </div>
+        </SearchableSetting>
+
+        <SearchableSetting
           title="Minimap"
           description="Show the minimap overview when editing a file."
           keywords={['minimap', 'overview', 'code', 'scroll']}

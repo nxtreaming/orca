@@ -45,6 +45,11 @@ export const GENERAL_EDITOR_SEARCH_ENTRIES: SettingsSearchEntry[] = [
     keywords: ['diff', 'view', 'inline', 'side-by-side', 'split']
   },
   {
+    title: 'Default Diff File Tree',
+    description: 'Show or hide the file tree when opening combined diff views.',
+    keywords: ['diff', 'tree', 'file tree', 'combined diff', 'sidebar']
+  },
+  {
     title: 'Minimap',
     description: 'Show the minimap overview when editing a file.',
     keywords: ['minimap', 'overview', 'code', 'scroll']
