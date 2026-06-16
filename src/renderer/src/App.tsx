@@ -243,6 +243,12 @@ const StatusBar = lazy(() =>
 const SetupGuideModal = lazy(() => import('./components/setup-guide/SetupGuideModal'))
 const FeatureWallModal = lazy(() => import('./components/feature-wall/FeatureWallModal'))
 const FeatureTipsModal = lazy(() => import('./components/feature-tips/FeatureTipsModal'))
+const AddRepoDialog = lazy(() => import('./components/sidebar/AddRepoDialog'))
+const NonGitFolderDialog = lazy(() => import('./components/sidebar/NonGitFolderDialog'))
+const AddProjectFromFolderDialog = lazy(
+  () => import('./components/sidebar/AddProjectFromFolderDialog')
+)
+const ProjectAddedDialog = lazy(() => import('./components/sidebar/ProjectAddedDialog'))
 const DeleteWorktreeDialog = lazy(() => import('./components/sidebar/DeleteWorktreeDialog'))
 const DictationController = lazy(() =>
   import('./components/dictation/DictationController').then((module) => ({
@@ -529,6 +535,7 @@ function App(): React.JSX.Element {
       setFloatingTerminalOpenWithFocus(false)
     }
   }, [floatingTerminalEnabled, setFloatingTerminalOpenWithFocus])
+
   const sidebarWidth = useAppStore((s) => s.sidebarWidth)
   const sidebarOpen = useAppStore((s) => s.sidebarOpen)
   const groupBy = useAppStore((s) => s.groupBy)
@@ -575,10 +582,12 @@ function App(): React.JSX.Element {
   const titlebarLeftControlsRef = useRef<HTMLDivElement | null>(null)
   const [collapsedSidebarHeaderWidth, setCollapsedSidebarHeaderWidth] = useState(0)
   const [mountedLazyModalIds, setMountedLazyModalIds] = useState<Set<LazyModalId>>(() => new Set())
+  const [shouldMountAddRepoDialog, setShouldMountAddRepoDialog] = useState(false)
   const [onboarding, setOnboarding] = useState<OnboardingState | null>(null)
   const [onboardingLoaded, setOnboardingLoaded] = useState(false)
   const featureTipsPromptedThisSessionRef = useRef(false)
   const featureTipsSuppressedByOnboardingThisSessionRef = useRef(false)
+  const unmountAddRepoDialogTimerRef = useRef<ReturnType<typeof setTimeout> | null>(null)
   const [featureTipCliInstalled, setFeatureTipCliInstalled] = useState<boolean | null>(null)
   const [onboardingSettingsDetour, setOnboardingSettingsDetour] = useState(false)
   const shouldRenderOnboarding = onboarding !== null && shouldShowOnboarding(onboarding)
@@ -589,6 +598,31 @@ function App(): React.JSX.Element {
     // it during render so onboarding can resume without a follow-up Effect pass.
     setOnboardingSettingsDetour(false)
   }
+
+  useEffect(() => {
+    if (activeModal === 'add-repo') {
+      if (unmountAddRepoDialogTimerRef.current) {
+        clearTimeout(unmountAddRepoDialogTimerRef.current)
+        unmountAddRepoDialogTimerRef.current = null
+      }
+      setShouldMountAddRepoDialog(true)
+      return
+    }
+    if (shouldMountAddRepoDialog && !unmountAddRepoDialogTimerRef.current) {
+      // Why: AddRepoDialog's close effect aborts in-flight clone/nested work.
+      // Keep one closed render, then remove hidden SSH/remote subscriptions.
+      unmountAddRepoDialogTimerRef.current = setTimeout(() => {
+        setShouldMountAddRepoDialog(false)
+        unmountAddRepoDialogTimerRef.current = null
+      }, 0)
+    }
+    return () => {
+      if (unmountAddRepoDialogTimerRef.current) {
+        clearTimeout(unmountAddRepoDialogTimerRef.current)
+        unmountAddRepoDialogTimerRef.current = null
+      }
+    }
+  }, [activeModal, shouldMountAddRepoDialog])
 
   // Subscribe to IPC push events
   useIpcEvents()
@@ -2121,6 +2155,50 @@ function App(): React.JSX.Element {
                 <NewWorkspaceComposerModal />
               </RecoverableRenderErrorBoundary>
             ) : null}
+            <Suspense fallback={null}>
+              {shouldMountAddRepoDialog ? (
+                <RecoverableRenderErrorBoundary
+                  boundaryId="modal.add-repo"
+                  surface="modal"
+                  resetKey={activeModal === 'add-repo'}
+                  compact
+                >
+                  <AddRepoDialog />
+                </RecoverableRenderErrorBoundary>
+              ) : null}
+              {/* Why: Settings can start Add Project without mounting Sidebar,
+              so Add Project handoff dialogs must share the root host. */}
+              {activeModal === 'confirm-non-git-folder' ? (
+                <RecoverableRenderErrorBoundary
+                  boundaryId="modal.confirm-non-git-folder"
+                  surface="modal"
+                  resetKey
+                  compact
+                >
+                  <NonGitFolderDialog />
+                </RecoverableRenderErrorBoundary>
+              ) : null}
+              {activeModal === 'confirm-add-project-from-folder' ? (
+                <RecoverableRenderErrorBoundary
+                  boundaryId="modal.confirm-add-project-from-folder"
+                  surface="modal"
+                  resetKey
+                  compact
+                >
+                  <AddProjectFromFolderDialog />
+                </RecoverableRenderErrorBoundary>
+              ) : null}
+              {activeModal === 'project-added' ? (
+                <RecoverableRenderErrorBoundary
+                  boundaryId="modal.project-added"
+                  surface="modal"
+                  resetKey
+                  compact
+                >
+                  <ProjectAddedDialog />
+                </RecoverableRenderErrorBoundary>
+              ) : null}
+            </Suspense>
             {/* Why: root overlays can render Radix <Tooltip>s; keep them inside
             the shared provider so lazy surfaces mount safely from any entry point. */}
             <Suspense fallback={null}>

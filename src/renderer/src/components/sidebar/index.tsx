@@ -15,11 +15,7 @@ import { useSidebarProjectDrop } from './useSidebarProjectDrop'
 import { useWorkspaceBoardPanel } from './useWorkspaceBoardPanel'
 
 const WorktreeMetaDialog = React.lazy(() => import('./WorktreeMetaDialog'))
-const NonGitFolderDialog = React.lazy(() => import('./NonGitFolderDialog'))
 const RemoveFolderDialog = React.lazy(() => import('./RemoveFolderDialog'))
-const AddRepoDialog = React.lazy(() => import('./AddRepoDialog'))
-const AddProjectFromFolderDialog = React.lazy(() => import('./AddProjectFromFolderDialog'))
-const ProjectAddedDialog = React.lazy(() => import('./ProjectAddedDialog'))
 const WorktreeVisibilityDialog = React.lazy(() => import('./WorktreeVisibilityDialog'))
 const OrcaYamlTrustDialog = React.lazy(() => import('./OrcaYamlTrustDialog'))
 
@@ -45,8 +41,6 @@ function Sidebar({
   const fetchAllWorktrees = useAppStore((s) => s.fetchAllWorktrees)
   const activeModal = useAppStore((s) => s.activeModal)
   const { nativeDropTarget, dropHandlers, affordance } = useSidebarProjectDrop()
-  const [shouldMountAddRepoDialog, setShouldMountAddRepoDialog] = React.useState(false)
-  const unmountAddRepoDialogTimerRef = React.useRef<ReturnType<typeof setTimeout> | null>(null)
   const {
     workspaceBoardOpen,
     workspaceBoardMenuOpen,
@@ -67,31 +61,6 @@ function Sidebar({
       fetchAllWorktrees()
     }
   }, [repoCount, fetchAllWorktrees])
-
-  useEffect(() => {
-    if (activeModal === 'add-repo') {
-      if (unmountAddRepoDialogTimerRef.current) {
-        clearTimeout(unmountAddRepoDialogTimerRef.current)
-        unmountAddRepoDialogTimerRef.current = null
-      }
-      setShouldMountAddRepoDialog(true)
-      return
-    }
-    if (shouldMountAddRepoDialog && !unmountAddRepoDialogTimerRef.current) {
-      // Why: AddRepoDialog's close effect aborts in-flight clone/nested work.
-      // Keep one closed render, then remove hidden SSH/remote subscriptions.
-      unmountAddRepoDialogTimerRef.current = setTimeout(() => {
-        setShouldMountAddRepoDialog(false)
-        unmountAddRepoDialogTimerRef.current = null
-      }, 0)
-    }
-    return () => {
-      if (unmountAddRepoDialogTimerRef.current) {
-        clearTimeout(unmountAddRepoDialogTimerRef.current)
-        unmountAddRepoDialogTimerRef.current = null
-      }
-    }
-  }, [activeModal, shouldMountAddRepoDialog])
 
   useEffect(() => {
     if (!sidebarOpen && workspaceBoardOpen) {
@@ -171,11 +140,7 @@ function Sidebar({
       for the modal that needs their flow-specific hooks and UI. */}
       <React.Suspense fallback={null}>
         {activeModal === 'edit-meta' ? <WorktreeMetaDialog /> : null}
-        {activeModal === 'confirm-non-git-folder' ? <NonGitFolderDialog /> : null}
         {activeModal === 'confirm-remove-folder' ? <RemoveFolderDialog /> : null}
-        {shouldMountAddRepoDialog ? <AddRepoDialog /> : null}
-        {activeModal === 'confirm-add-project-from-folder' ? <AddProjectFromFolderDialog /> : null}
-        {activeModal === 'project-added' ? <ProjectAddedDialog /> : null}
         {activeModal === 'worktree-visibility' ? <WorktreeVisibilityDialog /> : null}
         {activeModal === 'confirm-orca-yaml-hooks' ? <OrcaYamlTrustDialog /> : null}
       </React.Suspense>
