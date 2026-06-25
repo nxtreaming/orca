@@ -9170,7 +9170,9 @@
             "sessionId": "세션 ID",
             "logPath": "로그 경로",
             "agents": "에이전트",
-            "sessionsShownCompact": "{{value0}} 표시됨"
+            "sessionsShownCompact": "{{value0}} 표시됨",
+            "originalPaneUnavailable": "원래 창은 더 이상 사용할 수 없습니다.",
+            "worktreeUnavailable": "워크트리는 더 이상 사용할 수 없습니다."
           },
           "AiVaultPanelControls": {
             "scanningSessions": "세션 스캔 중",
@@ -9218,6 +9220,8 @@
             "resumeCommand": "재개 명령",
             "sessionActions": "{{value0}} 세션 작업",
             "resumeInNewTab": "새 탭에서 재개",
+            "resumeInWorktree": "워크트리에서 재개",
+            "viewLog": "로그 보기",
             "copyResumeCommand": "재개 명령 복사",
             "openLog": "로그 열기",
             "revealLog": "로그 위치 열기",
@@ -9226,10 +9230,10 @@
             "copyLogPath": "로그 경로 복사",
             "unknownTime": "알 수 없는 시간",
             "unknown": "알 수 없음",
-            "user": "User",
-            "assistant": "Assistant",
-            "tool": "Tool",
-            "system": "System",
+            "user": "사용자",
+            "assistant": "어시스턴트",
+            "tool": "도구",
+            "system": "시스템",
             "log": "로그",
             "justNow": "방금 전",
             "minutesAgo": "{{value0}}분 전",
@@ -9246,7 +9250,10 @@
             "agentRole": "에이전트",
             "toolRole": "도구",
             "systemRole": "시스템",
-            "sessionRole": "세션"
+            "sessionRole": "세션",
+            "jumpToOriginalPane": "원래 창으로 이동",
+            "worktree": "작업 트리",
+            "jumpToWorktree": "작업 트리로 이동"
           },
           "AiVaultSessionRow": {
             "resumeAgentSession": "{{value0}} 세션 재개",
@@ -9270,7 +9277,9 @@
             "agentRole": "에이전트",
             "toolRole": "도구",
             "systemRole": "시스템",
-            "sessionRole": "세션"
+            "sessionRole": "세션",
+            "jumpToOriginalPane": "원래 창으로 이동",
+            "jumpToWorktree": "작업 트리로 이동"
           },
           "FileExplorerNameFilter": {
             "26fb73c6e3": "파일 찾기",
@@ -9310,10 +9319,21 @@
                 "diverged": "Diverged",
                 "body": "이 브랜치에는 로컬 commits과 원격 commits이 모두 있습니다. 이 워크트리 또는 SSH 호스트에서 명령 하나를 실행한 다음 풀 또는 동기화를 다시 시도하세요.",
                 "copyAria": "{{value0}} pull 정책 명령 복사",
-                "copied": "Copied",
+                "copied": "복사됨",
                 "copyCommand": "명령 복사"
               }
             }
+          },
+          "AiVaultSessionWorktree": {
+            "currentWorktree": "현재 작업 트리",
+            "activeWorktree": "활성 작업 트리",
+            "archivedWorktree": "보관된 작업 트리",
+            "unavailableWorktree": "사용할 수 없는 작업 트리",
+            "jumpToWorktree": "작업 트리로 이동",
+            "noRecordedWorktree": "이 세션에 기록된 작업 트리가 없습니다.",
+            "archivedJumpUnavailable": "이 세션은 보관된 작업 트리에 있습니다.",
+            "noActiveWorktreeMatch": "이 세션과 일치하는 활성 작업 트리가 없습니다.",
+            "noActiveWorktreeTarget": "사용 가능한 활성 작업 트리가 없습니다."
           }
         }
       },

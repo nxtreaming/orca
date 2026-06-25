@@ -9170,7 +9170,9 @@
             "sessionId": "会话 ID",
             "logPath": "日志路径",
             "agents": "智能体",
-            "sessionsShownCompact": "已显示 {{value0}} 个"
+            "sessionsShownCompact": "已显示 {{value0}} 个",
+            "originalPaneUnavailable": "Original pane is no longer available.",
+            "worktreeUnavailable": "Worktree is no longer available."
           },
           "AiVaultPanelControls": {
             "scanningSessions": "正在扫描会话",
@@ -9218,6 +9220,8 @@
             "resumeCommand": "恢复命令",
             "sessionActions": "{{value0}} 会话操作",
             "resumeInNewTab": "在新标签页中恢复",
+            "resumeInWorktree": "在工作树中恢复",
+            "viewLog": "查看日志",
             "copyResumeCommand": "复制恢复命令",
             "openLog": "打开日志",
             "revealLog": "显示日志",
@@ -9246,7 +9250,10 @@
             "agentRole": "智能体",
             "toolRole": "工具",
             "systemRole": "系统",
-            "sessionRole": "会话"
+            "sessionRole": "会话",
+            "jumpToOriginalPane": "跳转到原始窗格",
+            "worktree": "工作树",
+            "jumpToWorktree": "跳转到工作树"
           },
           "AiVaultSessionRow": {
             "resumeAgentSession": "恢复 {{value0}} 会话",
@@ -9270,7 +9277,9 @@
             "agentRole": "智能体",
             "toolRole": "工具",
             "systemRole": "系统",
-            "sessionRole": "会话"
+            "sessionRole": "会话",
+            "jumpToOriginalPane": "跳转到原始窗格",
+            "jumpToWorktree": "跳转到工作树"
           },
           "FileExplorerNameFilter": {
             "26fb73c6e3": "查找文件",
@@ -9300,20 +9309,31 @@
           "pull": {
             "policy": {
               "notice": {
-                "merge": "合并",
-                "mergeDescription": "当本地和远程都有更改时创建合并提交。",
-                "rebase": "变基",
-                "rebaseDescription": "在远程分支之上重放本地提交。",
-                "fastForwardOnly": "仅快进",
-                "fastForwardOnlyDescription": "仅在不需要合并或变基时拉取。",
+                "merge": "合并 (Merge)",
+                "mergeDescription": "当本地和远程都发生更改时，创建一个合并提交。",
+                "rebase": "变基 (Rebase)",
+                "rebaseDescription": "在远程分支之上重新应用本地提交。",
+                "fastForwardOnly": "仅快进 (Fast-forward)",
+                "fastForwardOnlyDescription": "仅在不需要合并或变基时进行拉取。",
                 "title": "拉取需要策略",
-                "diverged": "已分叉",
-                "body": "此分支同时存在本地和远程提交。请在此工作树或 SSH 主机中运行一个命令，然后再次尝试拉取或同步。",
-                "copyAria": "Copy {{value0}} pull policy command",
+                "diverged": "分支已分叉",
+                "body": "此分支具有本地和远程提交。在此工作树或 SSH 主机上运行一个命令，然后重新尝试拉取或同步。",
+                "copyAria": "复制 {{value0}} 拉取策略命令",
                 "copied": "已复制",
                 "copyCommand": "复制命令"
               }
             }
+          },
+          "AiVaultSessionWorktree": {
+            "currentWorktree": "当前工作树",
+            "activeWorktree": "活动工作树",
+            "archivedWorktree": "已归档工作树",
+            "unavailableWorktree": "不可用的工作树",
+            "jumpToWorktree": "跳转到工作树",
+            "noRecordedWorktree": "此会话没有记录工作树。",
+            "archivedJumpUnavailable": "此会话位于已归档的工作树中。",
+            "noActiveWorktreeMatch": "没有与此会话匹配的活动工作树。",
+            "noActiveWorktreeTarget": "没有可用的活动工作树。"
           }
         }
       },
