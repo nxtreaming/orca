@@ -478,7 +478,9 @@
 
 .worktree-sidebar-scrollbar::-webkit-scrollbar-thumb {
   background-color: transparent;
-  border-width: 3px 3px 3px 0;
+  /* Why: no right inset — a 3px transparent right border left a visible strip
+     beside the sidebar resize seam that read like a gap in the drag handle. */
+  border-width: 3px 0 3px 0;
 }
 
 .scrollbar-sleek-parent:hover .worktree-sidebar-scrollbar,
