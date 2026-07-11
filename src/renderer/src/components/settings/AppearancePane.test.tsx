@@ -23,7 +23,9 @@ const mocks = vi.hoisted(() => ({
     usagePercentageDisplay: 'used' as 'used' | 'remaining',
     setUsagePercentageDisplay: vi.fn(),
     recordFeatureInteraction: vi.fn(),
-    setWorktreeCardMode: vi.fn()
+    setWorktreeCardMode: vi.fn(),
+    appearanceAccordionDeepLink: null as 'interface' | 'terminal' | 'window' | null,
+    clearAppearanceAccordionDeepLink: vi.fn()
   }
 }))
 

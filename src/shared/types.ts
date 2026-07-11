@@ -3348,6 +3348,10 @@ export type PersistedUIState = {
   /** One-shot rollout notice for manual project ordering becoming the default.
    *  Absent or true means the sidebar callout stays hidden. */
   projectOrderManualDefaultNoticeDismissed?: boolean
+  /** One-shot notice that status-bar usage meters now show percent used (not
+   *  remaining). Absent is resolved on load: brand-new profiles default to
+   *  dismissed; upgraded profiles see the notice once. */
+  usagePercentageDisplayChangeNoticeDismissed?: boolean
   /** User-hidden empty-state usage CTA in the status bar. Permanently hides the
    *  "Connect AI accounts to see usage" prompt even if all providers are later
    *  disconnected — a dismissed teaching nudge stays dismissed. */

@@ -511,6 +511,9 @@ export function getDefaultUIState(): PersistedUIState {
     // Why: brand-new profiles never saw recent project ordering; only upgraded
     // profiles get the one-time sidebar notice on first launch.
     projectOrderManualDefaultNoticeDismissed: true,
+    // Why: brand-new profiles never saw percent-remaining as the default; only
+    // upgraded profiles get the one-time usage-display change notice.
+    usagePercentageDisplayChangeNoticeDismissed: true,
     workspaceCleanup: { dismissals: {} },
     featureTipsSeenIds: [],
     featureInteractions: {},

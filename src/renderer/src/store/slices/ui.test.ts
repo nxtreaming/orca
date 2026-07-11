@@ -1268,10 +1268,34 @@ describe('createUISlice hydratePersistedUI', () => {
     store.getState().setUsagePercentageDisplay('used')
 
     expect(store.getState().usagePercentageDisplay).toBe('used')
-    expect(setUI).toHaveBeenCalledWith({ usagePercentageDisplay: 'used' })
+    // Why: adapting the control also permanently dismisses the one-time change notice.
+    expect(setUI).toHaveBeenCalledWith({
+      usagePercentageDisplay: 'used',
+      usagePercentageDisplayChangeNoticeDismissed: true
+    })
+    expect(store.getState().usagePercentageDisplayChangeNoticeDismissed).toBe(true)
 
     store.getState().hydratePersistedUI(makePersistedUI({ usagePercentageDisplay: 'remaining' }))
     expect(store.getState().usagePercentageDisplay).toBe('remaining')
+  })
+
+  it('hydrates and dismisses the usage percentage display change notice', () => {
+    const setUI = vi.fn().mockResolvedValue(undefined)
+    vi.stubGlobal('window', { api: { ui: { set: setUI } } })
+    const store = createUIStore()
+
+    store
+      .getState()
+      .hydratePersistedUI(makePersistedUI({ usagePercentageDisplayChangeNoticeDismissed: false }))
+    expect(store.getState().usagePercentageDisplayChangeNoticeDismissed).toBe(false)
+
+    store.getState().dismissUsagePercentageDisplayChangeNotice()
+    expect(store.getState().usagePercentageDisplayChangeNoticeDismissed).toBe(true)
+    expect(setUI).toHaveBeenCalledWith({ usagePercentageDisplayChangeNoticeDismissed: true })
+
+    setUI.mockClear()
+    store.getState().dismissUsagePercentageDisplayChangeNotice()
+    expect(setUI).not.toHaveBeenCalled()
   })
 
   it('defaults invalid usage percentage display values to used', () => {

@@ -18,6 +18,7 @@ import {
   getStatusBarToggles,
   getUsagePercentageDisplayEntry
 } from './appearance-search'
+import { USAGE_PERCENTAGE_DISPLAY_SETTING_ID } from './appearance-usage-percentage-search'
 import { LeftSidebarAppearanceSetting } from './LeftSidebarAppearanceSetting'
 import {
   getLeftSidebarAppearanceEntry,
@@ -130,6 +131,7 @@ export function AppearanceWindowSidebarSection({
           {showStatusBarControls ? (
             <div className="ml-4 divide-y divide-border/40 border-t border-border/40">
               <SearchableSetting
+                id={USAGE_PERCENTAGE_DISPLAY_SETTING_ID}
                 title={usagePercentageDisplayEntry.title}
                 description={usagePercentageDisplayEntry.description}
                 keywords={usagePercentageDisplayEntry.keywords}
