@@ -99,9 +99,33 @@ type ProcessPtyOutputOptions = {
 type PendingPtySideEffect = {
   payloads: ProcessedAgentStatusChunk['payloads']
   titles: string[]
-  scannedForTitles: boolean
+  titleScanEffect: 'none' | 'stale-probe' | 'ignored-cursor-native'
   containsBell: boolean
   suppressAttentionEvents: boolean
+}
+
+function isIgnoredCursorNativeTitle(title: string): boolean {
+  return title.trim().toLowerCase() === 'cursor agent'
+}
+
+function removeIgnoredCursorNativeTitles(titles: string[]): boolean {
+  let writeIndex = 0
+  let removed = false
+  for (let readIndex = 0; readIndex < titles.length; readIndex += 1) {
+    const title = titles[readIndex]
+    if (isIgnoredCursorNativeTitle(title)) {
+      removed = true
+      continue
+    }
+    if (writeIndex !== readIndex) {
+      titles[writeIndex] = title
+    }
+    writeIndex += 1
+  }
+  if (removed) {
+    titles.length = writeIndex
+  }
+  return removed
 }
 
 export function createPtyOutputProcessor({
@@ -167,21 +191,6 @@ export function createPtyOutputProcessor({
   }
 
   function applyObservedTerminalTitle(title: string, suppressAgentTracker = false): void {
-    // Why: cursor-agent's native OSC title is the literal string "Cursor Agent"
-    // and it re-emits that title many times per turn (on every internal redraw)
-    // even while it's actively working. Orca drives the cursor spinner/unread
-    // path by injecting its own synthesized "⠋ Cursor Agent" and "Cursor ready"
-    // frames from the hook server (see src/main/index.ts). If we let cursor's
-    // bare title through, it lands in `runtimePaneTitlesByTabId` — where
-    // `getWorktreeStatus` reads from — and flips the sidebar dot back to solid
-    // within a second of the spinner appearing. Dropping the bare title before
-    // it reaches the store leaves the synthesized frame as the last-applied
-    // state until the next hook event overwrites it. Match is literal (trimmed,
-    // case-insensitive) so any task/chat title cursor auto-generates still
-    // passes through unchanged.
-    if (title.trim().toLowerCase() === 'cursor agent') {
-      return
-    }
     lastEmittedTitle = normalizeTerminalTitle(title)
     onTitleChange?.(lastEmittedTitle, title)
     if (!suppressAgentTracker) {
@@ -218,7 +227,9 @@ export function createPtyOutputProcessor({
       next.payloads.length === 0 &&
       !next.containsBell
     ) {
-      prior.scannedForTitles ||= next.scannedForTitles
+      // Why: for adjacent no-op scans, only the latest event decides whether
+      // stale-title detection should remain cleared or be re-armed.
+      prior.titleScanEffect = next.titleScanEffect
       pendingWorkingTitleSideEffects += workingTitleCount
       return
     }
@@ -233,6 +244,9 @@ export function createPtyOutputProcessor({
   ): void {
     const scannedForTitles = Boolean(onTitleChange && data.includes('\x1b]'))
     const titles = scannedForTitles ? extractAllOscTitles(data) : []
+    // Why: Cursor emits this ignored title on every redraw; keep one ordered
+    // queue fact instead of one allocation and drain slot per native frame.
+    const ignoredCursorNativeTitle = removeIgnoredCursorNativeTitles(titles)
     const deliveredPayloads =
       onAgentStatus && !suppressAttentionEvents && payloads.length > 0 ? payloads : []
     const containsBell = Boolean(
@@ -246,6 +260,11 @@ export function createPtyOutputProcessor({
       (isWorkingTitle(lastEmittedTitle) || pendingWorkingTitleSideEffects > 0)
     )
     const shouldEmitEmptyTitleScan = scannedForTitles || needsStaleTitleProbe
+    const emptyTitleScanEffect: PendingPtySideEffect['titleScanEffect'] = ignoredCursorNativeTitle
+      ? 'ignored-cursor-native'
+      : shouldEmitEmptyTitleScan
+        ? 'stale-probe'
+        : 'none'
     if (!shouldEmitEmptyTitleScan && deliveredPayloads.length === 0 && !containsBell) {
       return
     }
@@ -257,7 +276,7 @@ export function createPtyOutputProcessor({
       enqueuePtySideEffect({
         payloads: [],
         titles: [],
-        scannedForTitles: shouldEmitEmptyTitleScan,
+        titleScanEffect: emptyTitleScanEffect,
         containsBell,
         suppressAttentionEvents
       })
@@ -266,7 +285,7 @@ export function createPtyOutputProcessor({
         enqueuePtySideEffect({
           payloads: [payload],
           titles: [],
-          scannedForTitles: false,
+          titleScanEffect: 'none',
           containsBell: false,
           suppressAttentionEvents
         })
@@ -275,7 +294,7 @@ export function createPtyOutputProcessor({
         enqueuePtySideEffect({
           payloads: [],
           titles: [],
-          scannedForTitles: shouldEmitEmptyTitleScan,
+          titleScanEffect: emptyTitleScanEffect,
           containsBell: false,
           suppressAttentionEvents
         })
@@ -284,7 +303,7 @@ export function createPtyOutputProcessor({
         enqueuePtySideEffect({
           payloads: [],
           titles: [title],
-          scannedForTitles,
+          titleScanEffect: 'none',
           containsBell: false,
           suppressAttentionEvents
         })
@@ -293,7 +312,7 @@ export function createPtyOutputProcessor({
         enqueuePtySideEffect({
           payloads: [],
           titles: [],
-          scannedForTitles: false,
+          titleScanEffect: 'none',
           containsBell: true,
           suppressAttentionEvents
         })
@@ -334,7 +353,7 @@ export function createPtyOutputProcessor({
         onAgentStatus(payload)
       }
     }
-    processObservedTitles(next.titles, next.scannedForTitles, next.suppressAttentionEvents)
+    processObservedTitles(next.titles, next.titleScanEffect, next.suppressAttentionEvents)
     if (onBell && next.containsBell) {
       onBell()
     }
@@ -369,7 +388,7 @@ export function createPtyOutputProcessor({
 
   function processObservedTitles(
     titles: string[],
-    scannedForTitles: boolean,
+    titleScanEffect: PendingPtySideEffect['titleScanEffect'],
     suppressAgentTracker: boolean
   ): void {
     if (!onTitleChange) {
@@ -384,8 +403,10 @@ export function createPtyOutputProcessor({
       for (const title of titles) {
         applyObservedTerminalTitle(title, suppressAgentTracker)
       }
+    } else if (titleScanEffect === 'ignored-cursor-native') {
+      clearStaleTitleTimer()
     } else if (
-      scannedForTitles &&
+      titleScanEffect === 'stale-probe' &&
       !suppressAgentTracker &&
       lastEmittedTitle &&
       detectAgentStatusFromTitle(lastEmittedTitle) === 'working'
