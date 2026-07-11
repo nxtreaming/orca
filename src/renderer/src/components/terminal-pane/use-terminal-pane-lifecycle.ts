@@ -575,6 +575,7 @@ export function useTerminalPaneLifecycle({
   const selectionDisposablesRef = useRef(new Map<number, IDisposable>())
   const selectionCaptureTimersRef = useRef(new Map<number, number>())
   const mode2031DisposablesRef = useRef(new Map<number, IDisposable[]>())
+  const mode2031SeedAttemptTokensRef = useRef(new Map<number, symbol>())
   const osc52DisposablesRef = useRef(new Map<number, IDisposable>())
   const osc7DisposablesRef = useRef(new Map<number, IDisposable>())
   const mouseHideDisposablesRef = useRef(new Map<number, IDisposable>())
@@ -601,10 +602,15 @@ export function useTerminalPaneLifecycle({
   }
 
   const pushMode2031ForPane = (paneId: number): void => {
+    const attemptToken = Symbol()
+    mode2031SeedAttemptTokensRef.current.set(paneId, attemptToken)
     pushMode2031SeedReply(paneId, {
       hasPane: (candidateId) =>
         managerRef.current?.getPanes().some((pane) => pane.id === candidateId) === true,
       isSubscribed: (candidateId) => paneMode2031Ref.current.get(candidateId) === true,
+      // Why: an older connect retry must not answer a later resubscription.
+      isCurrentAttempt: (candidateId) =>
+        mode2031SeedAttemptTokensRef.current.get(candidateId) === attemptToken,
       getTransport: (candidateId) => paneTransportsRef.current.get(candidateId),
       getMode: () => {
         const currentSettings = settingsRef.current
@@ -1222,6 +1228,7 @@ export function useTerminalPaneLifecycle({
           mode2031DisposablesRef.current.delete(paneId)
         }
         paneMode2031Ref.current.delete(paneId)
+        mode2031SeedAttemptTokensRef.current.delete(paneId)
         paneKittyKeyboardModesRef.current.delete(paneId)
         paneLastThemeModeRef.current.delete(paneId)
         const osc52Disposable = osc52DisposablesRef.current.get(paneId)

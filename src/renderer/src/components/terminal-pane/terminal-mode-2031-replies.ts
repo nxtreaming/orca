@@ -10,6 +10,7 @@ type Mode2031ReplyTransport = Pick<PtyTransport, 'isConnected' | 'sendInputImmed
 type Mode2031SeedReplyDeps = {
   hasPane: (paneId: number) => boolean
   isSubscribed: (paneId: number) => boolean
+  isCurrentAttempt: (paneId: number) => boolean
   getTransport: (paneId: number) => Mode2031ReplyTransport | undefined
   getMode: () => TerminalColorSchemeMode | null
   recordMode: (paneId: number, mode: TerminalColorSchemeMode) => void
@@ -30,7 +31,7 @@ export function pushMode2031SeedReply(paneId: number, deps: Mode2031SeedReplyDep
   const send = (): void => {
     // Why: a TUI can unsubscribe while the PTY is connecting; every delayed
     // attempt must revalidate intent or its color reply can land at a shell prompt.
-    if (!deps.hasPane(paneId) || !deps.isSubscribed(paneId)) {
+    if (!deps.hasPane(paneId) || !deps.isSubscribed(paneId) || !deps.isCurrentAttempt(paneId)) {
       return
     }
     const transport = deps.getTransport(paneId)

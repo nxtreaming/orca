@@ -17,6 +17,7 @@ describe('pushMode2031SeedReply', () => {
     const sendInputImmediate = vi.fn<(data: string) => boolean>(() => true)
     const scheduled: (() => void)[] = []
     const recordMode = vi.fn()
+    const currentAttempt = { current: Symbol() }
     const transport = {
       isConnected: () => connectedState.current,
       sendInput,
@@ -29,15 +30,19 @@ describe('pushMode2031SeedReply', () => {
       sendInputImmediate,
       scheduled,
       recordMode,
-      push: () =>
+      push: () => {
+        const attempt = Symbol()
+        currentAttempt.current = attempt
         pushMode2031SeedReply(1, {
           hasPane: () => true,
           isSubscribed: () => subscribed.current,
+          isCurrentAttempt: () => currentAttempt.current === attempt,
           getTransport: () => transport,
           getMode: () => 'dark',
           recordMode,
           schedule: (callback) => scheduled.push(callback)
         })
+      }
     }
   }
 
@@ -64,5 +69,22 @@ describe('pushMode2031SeedReply', () => {
     expect(harness.sendInputImmediate).not.toHaveBeenCalled()
     expect(harness.sendInput).not.toHaveBeenCalled()
     expect(harness.scheduled).toHaveLength(0)
+  })
+
+  it('does not let an old retry answer a later subscription', () => {
+    const harness = createHarness(false)
+
+    harness.push()
+    harness.subscribed.current = false
+    harness.subscribed.current = true
+    harness.push()
+    expect(harness.scheduled).toHaveLength(2)
+
+    harness.connected.current = true
+    harness.scheduled.shift()?.()
+    harness.scheduled.shift()?.()
+
+    expect(harness.sendInputImmediate).toHaveBeenCalledTimes(1)
+    expect(harness.recordMode).toHaveBeenCalledTimes(1)
   })
 })
