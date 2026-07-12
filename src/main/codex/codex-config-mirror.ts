@@ -171,9 +171,9 @@ function mergeSystemCodexConfigIntoRuntime(runtimeConfig: string, systemConfig: 
       .filter((section) => isRuntimeProjectTomlSection(section.header))
       .map((section) => getTomlSectionHeaderKey(section.header))
   )
-  const systemProjectSections = deduplicateProjectTomlSections(getTomlSections(systemConfig)).filter(
-    (section) => isRuntimeProjectTomlSection(section.header)
-  )
+  const systemProjectSections = deduplicateProjectTomlSections(
+    getTomlSections(systemConfig)
+  ).filter((section) => isRuntimeProjectTomlSection(section.header))
   const systemUntrustedProjectHeaders = new Set(
     systemProjectSections
       .filter((section) => getProjectTrustLevel(section.block) === 'untrusted')

@@ -90,10 +90,7 @@ function linkSystemCodexResource(
     removeCopiedResourceIfOwned(targetPath, managedHomePath, entryName, sourcePath)
     return
   }
-  if (
-    entryName === CODEX_GLOBAL_INSTRUCTIONS_ENTRY &&
-    !systemResourceIsRegularFile(sourcePath)
-  ) {
+  if (entryName === CODEX_GLOBAL_INSTRUCTIONS_ENTRY && !systemResourceIsRegularFile(sourcePath)) {
     removeCopiedResourceIfOwned(targetPath, managedHomePath, entryName, sourcePath)
     console.warn('[codex-home] Ignoring non-file system Codex resource:', entryName)
     return

@@ -1153,11 +1153,7 @@ describe('upsertProjectTrustLevel', () => {
     // Linux path underneath is not — .../Repo and .../repo are two projects.
     const existingPath = '\\\\wsl$\\Ubuntu\\home\\u\\Repo'
     const incomingPath = '\\\\wsl$\\Ubuntu\\home\\u\\repo'
-    const original = [
-      `[projects.'${existingPath}']`,
-      'trust_level = "untrusted"',
-      ''
-    ].join('\n')
+    const original = [`[projects.'${existingPath}']`, 'trust_level = "untrusted"', ''].join('\n')
 
     const updated = upsertProjectTrustLevelInContent(original, incomingPath, 'trusted', {
       alreadyCanonical: true
@@ -1253,9 +1249,9 @@ describe('normalizeCodexProjectPathForLookup', () => {
   })
 
   it('treats wsl.localhost like the wsl$ share for the case-sensitive tail', () => {
-    expect(
-      normalizeCodexProjectPathForLookup('\\\\wsl.localhost\\Ubuntu\\home\\u\\Repo')
-    ).not.toBe(normalizeCodexProjectPathForLookup('\\\\wsl.localhost\\Ubuntu\\home\\u\\repo'))
+    expect(normalizeCodexProjectPathForLookup('\\\\wsl.localhost\\Ubuntu\\home\\u\\Repo')).not.toBe(
+      normalizeCodexProjectPathForLookup('\\\\wsl.localhost\\Ubuntu\\home\\u\\repo')
+    )
     expect(normalizeCodexProjectPathForLookup('\\\\WSL.LOCALHOST\\Ubuntu\\home\\u\\proj')).toBe(
       normalizeCodexProjectPathForLookup('//wsl.localhost/ubuntu/home/u/proj')
     )
@@ -1291,9 +1287,9 @@ describe('normalizeCodexProjectPathForLookup', () => {
 
 describe('normalizeCodexProjectPathForRevocationLookup', () => {
   it('folds WSL tails fully so drifted-case legacy revocations still match', () => {
-    expect(
-      normalizeCodexProjectPathForRevocationLookup('\\\\wsl$\\Ubuntu\\home\\u\\Repo')
-    ).toBe(normalizeCodexProjectPathForRevocationLookup('//wsl.localhost/ubuntu/home/u/repo'))
+    expect(normalizeCodexProjectPathForRevocationLookup('\\\\wsl$\\Ubuntu\\home\\u\\Repo')).toBe(
+      normalizeCodexProjectPathForRevocationLookup('//wsl.localhost/ubuntu/home/u/repo')
+    )
   })
 
   it('keeps POSIX paths case-sensitive', () => {
