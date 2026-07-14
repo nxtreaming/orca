@@ -3146,7 +3146,18 @@ export function registerPtyHandlers(
           if (args.preAllocatedHandle) {
             trustedTerminalHandleEnv.add(args.preAllocatedHandle)
           }
+          const expectedPtyId = effectiveSessionAppId ?? sessionId
+          const sequenceBeforeProviderSpawn = expectedPtyId
+            ? (runtime?.getPtyOutputSequence?.(expectedPtyId) ?? 0)
+            : 0
           result = await provider.spawn(spawnOptions)
+          if (result.providerSequence) {
+            runtime?.synchronizePtyOutputSequenceFromProvider?.(
+              result.id,
+              result.providerSequence,
+              sequenceBeforeProviderSpawn
+            )
+          }
         } catch (err) {
           const rawMessage = err instanceof Error ? err.message : String(err)
           const spawnError = normalizeNodePtySpawnError(err)
@@ -3486,6 +3497,15 @@ export function registerPtyHandlers(
       // Why: mobile xterm must start from the desktop xterm's exact screen
       // state and dimensions before live TUI chunks can render correctly.
       return requestSerializedBuffer(ptyId, opts)
+    },
+    serializeProviderBuffer: async (ptyId, opts) => {
+      try {
+        // Why: restored daemon PTYs can be live while their desktop pane stays
+        // unmounted; query the provider model so phone-local navigation works.
+        return (await getProviderForPty(ptyId).getBufferSnapshot?.(ptyId, opts)) ?? null
+      } catch {
+        return null
+      }
     },
     hasRendererSerializer: (ptyId) => {
       // Why: the runtime needs a synchronous probe so it can decide whether to
@@ -4058,7 +4078,18 @@ export function registerPtyHandlers(
             )
           }
           spawnTiming.mark('options')
+          const expectedPtyId = effectiveSessionAppId ?? effectiveSessionId
+          const sequenceBeforeProviderSpawn = expectedPtyId
+            ? (runtime?.getPtyOutputSequence?.(expectedPtyId) ?? 0)
+            : 0
           result = await provider.spawn(spawnOptions)
+          if (result.providerSequence) {
+            runtime?.synchronizePtyOutputSequenceFromProvider?.(
+              result.id,
+              result.providerSequence,
+              sequenceBeforeProviderSpawn
+            )
+          }
           spawnTiming.mark('provider_spawn')
         } catch (err) {
           // Why: a failed spawn must not leave a stale hidden mark on a session
@@ -4293,7 +4324,8 @@ export function registerPtyHandlers(
           ) {
             runtime.seedHeadlessTerminal(result.id, result.coldRestore.scrollback, seedSize, {
               cwd: result.coldRestore.cwd,
-              oscLinks: result.coldRestore.oscLinks
+              oscLinks: result.coldRestore.oscLinks,
+              preferProviderIfExisting: true
             })
           }
         }

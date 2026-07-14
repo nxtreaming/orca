@@ -132,6 +132,7 @@ describe('DaemonPtyAdapter (IPtyProvider)', () => {
       const result = await adapter.spawn({ cols: 80, rows: 24 })
       expect(result.id).toBeDefined()
       expect(typeof result.id).toBe('string')
+      expect(result.providerSequence).toEqual({ value: 0, generation: 'reset' })
     })
 
     it('uses worktreeId as session prefix when provided', async () => {
@@ -506,6 +507,10 @@ describe('DaemonPtyAdapter (IPtyProvider)', () => {
       expect(second.launchAgent).toBe('droid')
       expect(second.snapshot).toBeDefined()
       expect(second.snapshot).toContain('hello from shell')
+      expect(second.providerSequence).toEqual({
+        value: 'hello from shell\r\n'.length,
+        generation: 'continued'
+      })
     })
 
     it('includes rehydrateSequences in snapshot when terminal modes are active', async () => {
@@ -528,6 +533,7 @@ describe('DaemonPtyAdapter (IPtyProvider)', () => {
       expect(result.id).toBe('brand-new')
       expect(result.isReattach).toBeUndefined()
       expect(result.snapshot).toBeUndefined()
+      expect(result.providerSequence).toEqual({ value: 0, generation: 'reset' })
     })
   })
 
