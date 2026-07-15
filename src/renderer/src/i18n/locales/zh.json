@@ -13143,7 +13143,8 @@
         "cancel": "取消",
         "send": "发送回答",
         "next": "下一步",
-        "skip": "跳过"
+        "skip": "跳过",
+        "sending": "正在发送…"
       },
       "approval": {
         "title": "允许 {{value0}}？",
