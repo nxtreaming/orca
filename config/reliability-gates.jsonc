@@ -4164,6 +4164,74 @@
       "demotionRule": "Disable the probe if it exceeds its per-reveal budget or produces false-positive anomaly noise."
     },
     {
+      "id": "terminal-render.atlas-identity-invalidation",
+      "title": "A WebGL atlas identity change rebuilds cached glyph vertices",
+      "maturity": "experimental",
+      "protection": "partial",
+      "owner": "terminal-rendering",
+      "layer": "electron-visual-golden",
+      "surfaces": ["WebGL rendering", "shared glyph atlas", "render model"],
+      "platforms": ["macos", "linux", "windows"],
+      "providers": ["local", "daemon", "ssh", "remote-runtime"],
+      "coveredPlatforms": ["macos"],
+      "coveredProviders": [],
+      "coverageNotes": "A deterministic macOS Electron test uses two real WebGL terminals with distinct atlas populations, attaches one renderer to the other's atlas, and compares its pixels before and after rendering. Provider paths are unaffected because atlas ownership is renderer-local; Linux and Windows GPU evidence remains pending.",
+      "motivatingLinks": ["https://github.com/stablyai/orca/pull/8899"],
+      "invariant": "Whenever GlyphRenderer attaches a different shared atlas, every cached glyph vertex is rebuilt before the next draw even if the old and new atlases have the same clear-model generation.",
+      "oracle": "Render terminal A and capture its non-empty canvas, populate terminal B with a distinct atlas, attach A's glyph renderer to B's atlas without changing A's buffer, render A again, and require byte-equivalent visible pixels. Also require the atlas identities to differ so the test cannot pass without exercising the transition.",
+      "commands": [
+        "pnpm run ensure:electron-runtime && pnpm exec playwright test tests/e2e/terminal-webgl-atlas-budget.spec.ts --config tests/playwright.config.ts --project electron-headless --workers=1"
+      ],
+      "testFiles": ["tests/e2e/terminal-webgl-atlas-budget.spec.ts"],
+      "assertionRefs": [
+        {
+          "file": "tests/e2e/terminal-webgl-atlas-budget.spec.ts",
+          "assertions": [
+            "the replacement scenario uses distinct atlas identities and renders a non-empty baseline",
+            "attaching the replacement atlas leaves zero pixels different from the same terminal buffer's baseline"
+          ]
+        }
+      ],
+      "evidenceRuns": [
+        {
+          "date": "2026-07-17",
+          "runner": "local",
+          "platform": "macos",
+          "command": "pnpm run ensure:electron-runtime && pnpm exec playwright test tests/e2e/terminal-webgl-atlas-budget.spec.ts --config tests/playwright.config.ts --project electron-headless --workers=1",
+          "result": "passed",
+          "durationSeconds": 44,
+          "summary": "Both real-WebGL scenarios passed. The atlas-replacement case changed 327,165 pixels with the old generation adoption and zero pixels after identity invalidation."
+        }
+      ],
+      "runtimeBudget": {
+        "p95Seconds": 180,
+        "scope": "fresh E2E build plus two real-WebGL atlas tests"
+      },
+      "flakeHistory": {
+        "status": "unknown",
+        "evidence": "The focused local macOS run and the PR's macOS golden experiment job passed. The Linux golden job skipped both WebGL atlas tests because WebGL was unavailable; soak history is not yet available."
+      },
+      "redGreenEvidence": {
+        "status": "complete",
+        "evidence": "The old setAtlas behavior deterministically changed 327,165 pixels after replacement; setting the last-seen generation to an invalid value on identity change produced zero changed pixels."
+      },
+      "performanceBudget": {
+        "required": true,
+        "evidence": "The added work is one existing full-model rebuild only when atlas object identity changes; ordinary frames and repeated setAtlas calls with the same object take the existing path. The field sentinel remains off by default, samples only a modifier-clicked pane in a bounded ten-second burst, reuses and releases one readback canvas, and caps renderer and disk evidence."
+      },
+      "promotionCriteria": [
+        "Accumulate stable macOS and Linux GPU runs across the release golden suite.",
+        "Add Windows GPU evidence or retain the platform gap explicitly.",
+        "Remove the flag-gated field sentinel after the confirmation window while keeping this pixel regression."
+      ],
+      "knownGaps": [
+        "The historical field capture predates renderer-internal atlas identity diagnostics, so it cannot prove this exact transition retrospectively.",
+        "The deterministic test drives the renderer transition directly rather than reproducing the original Cmd/Ctrl-click lifecycle trigger.",
+        "Windows GPU evidence is not yet recorded."
+      ],
+      "demotionRule": "Keep experimental or demote to protection none if GPU skips hide the transition, the pixel oracle flakes across stable runners, or the test no longer fails with generation adoption restored."
+    },
+    {
       "id": "terminal-render.pixel-refresh-repair",
       "title": "Forced repaint does not change revealed pane pixels",
       "maturity": "experimental",

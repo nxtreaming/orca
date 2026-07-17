@@ -21,6 +21,10 @@ import type {
 } from '../shared/local-log-tail-types'
 import type { ReadClipboardTextOptions } from '../shared/clipboard-text'
 import type { AppIdentity } from '../shared/app-identity'
+import type {
+  WriteTerminalRenderDesyncEvidenceArgs,
+  WriteTerminalRenderDesyncEvidenceResult
+} from '../shared/terminal-render-desync-evidence'
 import type { MobileRelayStatus } from '../shared/mobile-relay-status'
 import type { MobilePairingConnectionMode } from '../shared/mobile-pairing-connection-mode'
 import type {
@@ -948,6 +952,10 @@ export type AppApi = {
   /** Opens a native directory picker and authorizes the selected directory
    *  for Floating Workspace markdown file creation. */
   pickFloatingWorkspaceDirectory: () => Promise<string | null>
+  /** Persists flag-gated terminal render evidence under app-owned userData. */
+  writeTerminalRenderDesyncEvidence: (
+    args: WriteTerminalRenderDesyncEvidenceArgs
+  ) => Promise<WriteTerminalRenderDesyncEvidenceResult>
 }
 
 export type PreloadApi = {

@@ -193,6 +193,7 @@
     "oxlint-plugin-react-doctor": "0.2.10",
     "oxlint-tsgolint": "0.23.0",
     "pdfjs-dist": "^5.7.284",
+    "pngjs": "^7.0.0",
     "radix-ui": "^1.6.2",
     "react": "^19.2.7",
     "react-colorful": "^5.7.0",

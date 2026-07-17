@@ -64,6 +64,7 @@ import type {
   PtyRendererDeliveryStateReport
 } from '../shared/pty-renderer-delivery-health'
 import type { TerminalViewAttributes } from '../shared/terminal-view-attributes'
+import type { WriteTerminalRenderDesyncEvidenceArgs } from '../shared/terminal-render-desync-evidence'
 import type { PtyMainDeliveryDiagnostics } from '../shared/pty-delivery-diagnostics'
 import type {
   WarpThemeImportPreview,
@@ -505,7 +506,9 @@ const api = {
     pickFloatingMarkdownDocument: (): Promise<MarkdownDocument | null> =>
       ipcRenderer.invoke('app:pickFloatingMarkdownDocument'),
     pickFloatingWorkspaceDirectory: (): Promise<string | null> =>
-      ipcRenderer.invoke('app:pickFloatingWorkspaceDirectory')
+      ipcRenderer.invoke('app:pickFloatingWorkspaceDirectory'),
+    writeTerminalRenderDesyncEvidence: (args: WriteTerminalRenderDesyncEvidenceArgs) =>
+      ipcRenderer.invoke('terminal:writeRenderDesyncEvidence', args)
   },
 
   orcaProfiles: {

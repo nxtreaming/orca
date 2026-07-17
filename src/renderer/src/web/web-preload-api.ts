@@ -502,7 +502,13 @@ function createWebPreloadApi(): Partial<PreloadApi> {
       getFloatingTerminalCwd: () => Promise.resolve(''),
       getFloatingMarkdownDirectory: () => Promise.resolve(''),
       pickFloatingMarkdownDocument: () => Promise.resolve(null),
-      pickFloatingWorkspaceDirectory: () => Promise.resolve(null)
+      pickFloatingWorkspaceDirectory: () => Promise.resolve(null),
+      // Browser fallback has no app-owned userData directory; rejecting keeps
+      // the sentinel from claiming that sensitive evidence was persisted.
+      writeTerminalRenderDesyncEvidence: () =>
+        Promise.reject(
+          new Error('Terminal render evidence is unavailable in the browser fallback.')
+        )
     },
     starNag: {
       onShow: () => noopUnsubscribe,
