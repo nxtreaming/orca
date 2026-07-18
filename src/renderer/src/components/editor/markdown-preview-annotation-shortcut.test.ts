@@ -76,19 +76,31 @@ describe('getMarkdownAnnotationBlockKeyForSelection', () => {
 describe('isMarkdownPreviewAddReviewNoteShortcut', () => {
   it('matches the default binding and respects overrides', () => {
     const defaultEvent = {
-      key: 'n',
-      code: 'KeyN',
+      key: 'a',
+      code: 'KeyA',
       metaKey: true,
       ctrlKey: false,
-      altKey: true,
-      shiftKey: false
+      altKey: false,
+      shiftKey: true
     }
 
     expect(isMarkdownPreviewAddReviewNoteShortcut(defaultEvent, 'darwin')).toBe(true)
     expect(isMarkdownPreviewAddReviewNoteShortcut(defaultEvent, 'linux')).toBe(false)
     expect(
+      isMarkdownPreviewAddReviewNoteShortcut(
+        { ...defaultEvent, metaKey: false, ctrlKey: true },
+        'linux'
+      )
+    ).toBe(true)
+    expect(
+      isMarkdownPreviewAddReviewNoteShortcut(
+        { ...defaultEvent, metaKey: false, ctrlKey: true },
+        'win32'
+      )
+    ).toBe(true)
+    expect(
       isMarkdownPreviewAddReviewNoteShortcut(defaultEvent, 'darwin', {
-        'editor.addReviewNote': ['Mod+Shift+A']
+        'editor.addReviewNote': ['Mod+Shift+K']
       })
     ).toBe(false)
   })

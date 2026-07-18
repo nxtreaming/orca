@@ -117,7 +117,7 @@ describe('rich markdown key handler', () => {
 
     try {
       const ctx = createContext(editor, false)
-      const event = keyEvent('n', { metaKey: true, altKey: true, code: 'KeyN' })
+      const event = keyEvent('a', { metaKey: true, shiftKey: true, code: 'KeyA' })
 
       expect(createRichMarkdownKeyHandler(ctx)(null, event)).toBe(true)
       expect(event.preventDefault).toHaveBeenCalled()
@@ -133,7 +133,7 @@ describe('rich markdown key handler', () => {
     try {
       const ctx = createContext(editor, false)
       ctx.openAnnotationPopoverRef.current = vi.fn(() => false)
-      const event = keyEvent('n', { metaKey: true, altKey: true, code: 'KeyN' })
+      const event = keyEvent('a', { metaKey: true, shiftKey: true, code: 'KeyA' })
 
       expect(createRichMarkdownKeyHandler(ctx)(null, event)).toBe(false)
       expect(event.preventDefault).not.toHaveBeenCalled()

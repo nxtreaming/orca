@@ -212,29 +212,29 @@ describe('installEditorAddReviewNoteShortcut', () => {
     const dispose = installEditorAddReviewNoteShortcut(container, onAddReviewNote)
 
     const defaultEvent = dispatchKeyDown(input, {
-      key: 'n',
-      code: 'KeyN',
+      key: 'a',
+      code: 'KeyA',
       metaKey: true,
-      altKey: true
+      shiftKey: true
     })
     const repeatEvent = dispatchKeyDown(input, {
-      key: 'n',
-      code: 'KeyN',
+      key: 'a',
+      code: 'KeyA',
       metaKey: true,
-      altKey: true,
+      shiftKey: true,
       repeat: true
     })
-    const unrelatedEvent = dispatchKeyDown(input, { key: 'n', code: 'KeyN', metaKey: true })
+    const unrelatedEvent = dispatchKeyDown(input, { key: 'a', code: 'KeyA', metaKey: true })
 
     expect(defaultEvent.defaultPrevented).toBe(true)
     expect(repeatEvent.defaultPrevented).toBe(false)
     expect(unrelatedEvent.defaultPrevented).toBe(false)
     expect(onAddReviewNote).toHaveBeenCalledTimes(1)
 
-    shortcutState.keybindings = { 'editor.addReviewNote': ['Mod+Shift+A'] }
+    shortcutState.keybindings = { 'editor.addReviewNote': ['Mod+Shift+K'] }
     const overriddenEvent = dispatchKeyDown(input, {
-      key: 'a',
-      code: 'KeyA',
+      key: 'k',
+      code: 'KeyK',
       metaKey: true,
       shiftKey: true
     })
@@ -242,7 +242,7 @@ describe('installEditorAddReviewNoteShortcut', () => {
     expect(onAddReviewNote).toHaveBeenCalledTimes(2)
 
     dispose()
-    dispatchKeyDown(input, { key: 'a', code: 'KeyA', metaKey: true, shiftKey: true })
+    dispatchKeyDown(input, { key: 'k', code: 'KeyK', metaKey: true, shiftKey: true })
     expect(onAddReviewNote).toHaveBeenCalledTimes(2)
   })
 
@@ -257,10 +257,10 @@ describe('installEditorAddReviewNoteShortcut', () => {
     const dispose = installEditorAddReviewNoteShortcut(container, onAddReviewNote)
 
     const event = dispatchKeyDown(input, {
-      key: 'n',
-      code: 'KeyN',
+      key: 'a',
+      code: 'KeyA',
       metaKey: true,
-      altKey: true
+      shiftKey: true
     })
 
     expect(onAddReviewNote).toHaveBeenCalledTimes(1)
