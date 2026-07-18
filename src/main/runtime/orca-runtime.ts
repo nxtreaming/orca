@@ -975,6 +975,8 @@ type RuntimeLeafRecord = RuntimeSyncedLeaf & {
   lastOutputAt: number | null
   lastExitCode: number | null
   tailBuffer: string[]
+  tailTranscriptBuffer: string[]
+  tailTranscriptChars: number
   tailPartialLine: string
   tailPendingAnsi: string
   tailRedrawCursor: RetainedTailRedrawCursor | null
@@ -1031,6 +1033,8 @@ type RuntimePtyWorktreeRecord = {
   titleUpdatedAt: number | null
   lastOutputAt: number | null
   tailBuffer: string[]
+  tailTranscriptBuffer: string[]
+  tailTranscriptChars: number
   tailPartialLine: string
   tailPendingAnsi: string
   tailRedrawCursor: RetainedTailRedrawCursor | null
@@ -3332,6 +3336,8 @@ export class OrcaRuntimeService {
         lastOutputAt: tailSource?.lastOutputAt ?? null,
         lastExitCode: tailSource?.lastExitCode ?? null,
         tailBuffer: tailSource?.tailBuffer ?? [],
+        tailTranscriptBuffer: tailSource?.tailTranscriptBuffer ?? [],
+        tailTranscriptChars: tailSource?.tailTranscriptChars ?? 0,
         tailPartialLine: tailSource?.tailPartialLine ?? '',
         tailPendingAnsi: tailSource?.tailPendingAnsi ?? '',
         tailRedrawCursor: tailSource?.tailRedrawCursor ?? null,
@@ -6040,6 +6046,7 @@ export class OrcaRuntimeService {
     const ptyTailBefore = pty
       ? {
           lines: pty.tailBuffer,
+          transcriptLines: pty.tailTranscriptBuffer,
           partialLine: pty.tailPartialLine,
           pendingAnsi: pty.tailPendingAnsi,
           redrawCursor: pty.tailRedrawCursor,
@@ -6061,10 +6068,18 @@ export class OrcaRuntimeService {
         pty.tailRedrawCursor
       )
       ptyTailAfter = nextTail
+      const nextTranscript = appendCompletedTerminalTranscript(
+        pty.tailTranscriptBuffer,
+        pty.tailTranscriptChars,
+        nextTail.newlyCompletedLines,
+        nextTail.newCompleteLines
+      )
       pty.tailBuffer = nextTail.lines
+      pty.tailTranscriptBuffer = nextTranscript.lines
+      pty.tailTranscriptChars = nextTranscript.characters
       pty.tailPartialLine = nextTail.partialLine
       pty.tailRedrawCursor = nextTail.redrawCursor
-      pty.tailTruncated = pty.tailTruncated || nextTail.truncated
+      pty.tailTruncated = pty.tailTruncated || nextTail.truncated || nextTranscript.truncated
       pty.tailLinesTotal += nextTail.newCompleteLines
       pty.preview = buildPreview(pty.tailBuffer, pty.tailPartialLine)
       this.scheduleWaitBlockedCheck(ptyId, normalized.text, at)
@@ -6087,6 +6102,7 @@ export class OrcaRuntimeService {
         ptyTailAfter &&
         tailStateMatches(
           leaf.tailBuffer,
+          leaf.tailTranscriptBuffer,
           leaf.tailPartialLine,
           leaf.tailPendingAnsi,
           leaf.tailRedrawCursor,
@@ -6098,6 +6114,8 @@ export class OrcaRuntimeService {
         // Why: the leaf and PTY record usually mirror the same terminal. Reuse
         // the PTY tail update instead of splitting large output twice.
         leaf.tailBuffer = pty.tailBuffer
+        leaf.tailTranscriptBuffer = pty.tailTranscriptBuffer
+        leaf.tailTranscriptChars = pty.tailTranscriptChars
         leaf.tailPartialLine = pty.tailPartialLine
         leaf.tailPendingAnsi = pty.tailPendingAnsi
         leaf.tailRedrawCursor = pty.tailRedrawCursor
@@ -6123,6 +6141,12 @@ export class OrcaRuntimeService {
           normalized.text,
           leaf.tailRedrawCursor
         )
+        const nextTranscript = appendCompletedTerminalTranscript(
+          leaf.tailTranscriptBuffer,
+          leaf.tailTranscriptChars,
+          nextTail.newlyCompletedLines,
+          nextTail.newCompleteLines
+        )
         const nextWaitState = computeTerminalTailWaitState(
           nextTail.lines,
           nextTail.partialLine,
@@ -6133,9 +6157,11 @@ export class OrcaRuntimeService {
         }
         leaf.tailWaitState = nextWaitState
         leaf.tailBuffer = nextTail.lines
+        leaf.tailTranscriptBuffer = nextTranscript.lines
+        leaf.tailTranscriptChars = nextTranscript.characters
         leaf.tailPartialLine = nextTail.partialLine
         leaf.tailRedrawCursor = nextTail.redrawCursor
-        leaf.tailTruncated = leaf.tailTruncated || nextTail.truncated
+        leaf.tailTruncated = leaf.tailTruncated || nextTail.truncated || nextTranscript.truncated
         leaf.tailLinesTotal += nextTail.newCompleteLines
         leaf.preview = buildPreview(leaf.tailBuffer, leaf.tailPartialLine)
       }
@@ -11037,7 +11063,8 @@ export class OrcaRuntimeService {
     const read = readTerminalTail({
       handle,
       status: getTerminalState(leaf),
-      completedLines: leaf.tailBuffer,
+      previewLines: leaf.tailBuffer,
+      completedLines: leaf.tailTranscriptBuffer,
       partialLine: leaf.tailPartialLine,
       completedLineCount: leaf.tailLinesTotal,
       bufferTruncated: leaf.tailTruncated,
@@ -21333,6 +21360,8 @@ export class OrcaRuntimeService {
         titleUpdatedAt: titleObservedAt,
         lastOutputAt: state.lastOutputAt ?? null,
         tailBuffer: [],
+        tailTranscriptBuffer: [],
+        tailTranscriptChars: 0,
         tailPartialLine: '',
         tailPendingAnsi: '',
         tailRedrawCursor: null,
@@ -21470,6 +21499,8 @@ export class OrcaRuntimeService {
     // Why: disconnected PTY records can stay addressable for status/exit reads,
     // but their retained transcripts must not accumulate after the process dies.
     pty.tailBuffer = []
+    pty.tailTranscriptBuffer = []
+    pty.tailTranscriptChars = 0
     pty.tailPartialLine = ''
     pty.tailPendingAnsi = ''
     pty.tailRedrawCursor = null
@@ -22903,7 +22934,8 @@ export class OrcaRuntimeService {
     return readTerminalTail({
       handle,
       status: pty.connected ? 'running' : pty.lastExitCode !== null ? 'exited' : 'unknown',
-      completedLines: pty.tailBuffer,
+      previewLines: pty.tailBuffer,
+      completedLines: pty.tailTranscriptBuffer,
       partialLine: pty.tailPartialLine,
       completedLineCount: pty.tailLinesTotal,
       bufferTruncated: pty.tailTruncated,
@@ -26532,6 +26564,7 @@ export function appendNormalizedToTailBuffer(
   redrawCursor: RetainedTailRedrawCursor | null
   truncated: boolean
   newCompleteLines: number
+  newlyCompletedLines: string[]
 } {
   if (normalizedChunk.length === 0) {
     return {
@@ -26539,7 +26572,8 @@ export function appendNormalizedToTailBuffer(
       partialLine: previousPartialLine,
       redrawCursor: previousRedrawCursor,
       truncated: false,
-      newCompleteLines: 0
+      newCompleteLines: 0,
+      newlyCompletedLines: []
     }
   }
 
@@ -26563,6 +26597,7 @@ export function appendNormalizedToTailBuffer(
   // visible redraw segment instead of appending every spinner frame.
   const segments = splitRetainedTerminalTailSegments(combinedChunk)
   const pieces = processTerminalTailCompleteSegments(segments.completeSegments)
+  const newlyCompletedLines = pieces.map((line) => trimTerminalLineRight(line))
   const partialResult = applyTerminalLineControls(segments.partialSegment)
   const nextPartialLine = trimTerminalLineRight(partialResult.text)
   const retainedPartialLine = nextPartialLine.slice(-MAX_TAIL_PARTIAL_CHARS)
@@ -26570,10 +26605,7 @@ export function appendNormalizedToTailBuffer(
   const omittedNewCompleteLines = newCompleteLines - pieces.length
   let nextLines =
     newCompleteLines > 0
-      ? [
-          ...(omittedNewCompleteLines > 0 ? [] : previousLines),
-          ...pieces.map((line) => line.replace(/[ \t]+$/g, ''))
-        ]
+      ? [...(omittedNewCompleteLines > 0 ? [] : previousLines), ...newlyCompletedLines]
       : previousLines
   let truncated =
     previousPartialWasCapped ||
@@ -26615,7 +26647,8 @@ export function appendNormalizedToTailBuffer(
     partialLine: retainedPartialLine,
     redrawCursor,
     truncated,
-    newCompleteLines
+    newCompleteLines,
+    newlyCompletedLines
   }
 }
 
@@ -26667,6 +26700,7 @@ function appendNormalizedToMultilineTailBuffer(
   redrawCursor: RetainedTailRedrawCursor | null
   truncated: boolean
   newCompleteLines: number
+  newlyCompletedLines: string[]
 } {
   const windowRows =
     maxUpwardCursorReach(normalizedChunk, previousRedrawCursor) + REDRAW_WINDOW_SAFETY_ROWS
@@ -26724,7 +26758,8 @@ function appendNormalizedToMultilineTailBuffer(
     partialLine: windowed.partialLine,
     redrawCursor: windowed.redrawCursor,
     truncated,
-    newCompleteLines: windowed.newCompleteLines
+    newCompleteLines: windowed.newCompleteLines,
+    newlyCompletedLines: windowed.newlyCompletedLines
   }
 }
 
@@ -26740,6 +26775,7 @@ export function appendNormalizedToMultilineTailBufferUnwindowed(
   redrawCursor: RetainedTailRedrawCursor | null
   truncated: boolean
   newCompleteLines: number
+  newlyCompletedLines: string[]
 } {
   const rows: RetainedTerminalRow[] = [
     ...previousLines.map((line) => ({ text: line, completed: true })),
@@ -26750,7 +26786,28 @@ export function appendNormalizedToMultilineTailBufferUnwindowed(
     : rows.length - 1
   let cursorColumn = previousRedrawCursor?.column ?? boundedPreviousPartialLine.length
   let newCompleteLines = 0
+  const newlyCompletedLines: string[] = []
+  let newlyCompletedLineCharacters = 0
+  let newlyCompletedLineStart = 0
   let truncated = previousPartialWasCapped
+
+  const retainNewlyCompletedLine = (line: string): void => {
+    newlyCompletedLines.push(line)
+    newlyCompletedLineCharacters += line.length
+    while (
+      newlyCompletedLines.length - newlyCompletedLineStart > MAX_TAIL_LINES ||
+      newlyCompletedLineCharacters > MAX_TAIL_CHARS
+    ) {
+      newlyCompletedLineCharacters -= newlyCompletedLines[newlyCompletedLineStart]!.length
+      newlyCompletedLineStart += 1
+    }
+    // Why: a single PTY chunk can contain unbounded newlines; compact in batches
+    // while retaining the suffix needed for stable transcript pagination.
+    if (newlyCompletedLineStart >= MAX_TAIL_LINES) {
+      newlyCompletedLines.splice(0, newlyCompletedLineStart)
+      newlyCompletedLineStart = 0
+    }
+  }
 
   const ensureCursorRow = (): void => {
     while (cursorRow >= rows.length) {
@@ -26807,6 +26864,7 @@ export function appendNormalizedToMultilineTailBufferUnwindowed(
       ensureCursorRow()
       rows[cursorRow]!.completed = true
       newCompleteLines += 1
+      retainNewlyCompletedLine(trimTerminalLineRight(rows[cursorRow]!.text))
       cursorRow += 1
       cursorColumn = 0
       ensureCursorRow()
@@ -26848,7 +26906,16 @@ export function appendNormalizedToMultilineTailBufferUnwindowed(
     writeChar(char)
   }
 
-  return finalizeRetainedTerminalRows(rows, cursorRow, cursorColumn, truncated, newCompleteLines)
+  return finalizeRetainedTerminalRows(
+    rows,
+    cursorRow,
+    cursorColumn,
+    truncated,
+    newCompleteLines,
+    newlyCompletedLineStart > 0
+      ? newlyCompletedLines.slice(newlyCompletedLineStart)
+      : newlyCompletedLines
+  )
 }
 
 type RetainedTailRedrawCursor = {
@@ -26866,13 +26933,15 @@ function finalizeRetainedTerminalRows(
   cursorRow: number,
   cursorColumn: number,
   initialTruncated: boolean,
-  newCompleteLines: number
+  newCompleteLines: number,
+  newlyCompletedLines: string[]
 ): {
   lines: string[]
   partialLine: string
   redrawCursor: RetainedTailRedrawCursor | null
   truncated: boolean
   newCompleteLines: number
+  newlyCompletedLines: string[]
 } {
   let truncated = initialTruncated
   let retainedRows = rows.map((row) => ({ ...row, text: row.text.replace(/[ \t]+$/g, '') }))
@@ -26934,7 +27003,8 @@ function finalizeRetainedTerminalRows(
     partialLine,
     redrawCursor,
     truncated,
-    newCompleteLines
+    newCompleteLines,
+    newlyCompletedLines
   }
 }
 
@@ -27161,8 +27231,43 @@ function containsTerminalVerticalLineControl(value: string): boolean {
   return false
 }
 
+function appendCompletedTerminalTranscript(
+  previousLines: string[],
+  previousCharacters: number,
+  newlyCompletedLines: string[],
+  newCompleteLineCount: number
+): { lines: string[]; characters: number; truncated: boolean } {
+  if (newCompleteLineCount === 0) {
+    return { lines: previousLines, characters: previousCharacters, truncated: false }
+  }
+
+  const omittedNewLineCount = Math.max(0, newCompleteLineCount - newlyCompletedLines.length)
+  const lines = omittedNewLineCount > 0 ? [] : [...previousLines]
+  let characters = omittedNewLineCount > 0 ? 0 : previousCharacters
+  for (const line of newlyCompletedLines) {
+    lines.push(line)
+    characters += line.length
+  }
+
+  let dropCount = Math.max(0, lines.length - MAX_TAIL_LINES)
+  for (let index = 0; index < dropCount; index += 1) {
+    characters -= lines[index]!.length
+  }
+  while (dropCount < lines.length && characters > MAX_TAIL_CHARS) {
+    characters -= lines[dropCount]!.length
+    dropCount += 1
+  }
+
+  return {
+    lines: dropCount > 0 ? lines.slice(dropCount) : lines,
+    characters,
+    truncated: omittedNewLineCount > 0 || dropCount > 0
+  }
+}
+
 function tailStateMatches(
   lines: string[],
+  transcriptLines: string[],
   partialLine: string,
   pendingAnsi: string,
   redrawCursor: RetainedTailRedrawCursor | null,
@@ -27170,6 +27275,7 @@ function tailStateMatches(
   linesTotal: number,
   snapshot: {
     lines: string[]
+    transcriptLines: string[]
     partialLine: string
     pendingAnsi: string
     redrawCursor: RetainedTailRedrawCursor | null
@@ -27183,7 +27289,8 @@ function tailStateMatches(
     !tailRedrawCursorsMatch(redrawCursor, snapshot.redrawCursor) ||
     truncated !== snapshot.truncated ||
     linesTotal !== snapshot.linesTotal ||
-    lines.length !== snapshot.lines.length
+    lines.length !== snapshot.lines.length ||
+    transcriptLines.length !== snapshot.transcriptLines.length
   ) {
     return false
   }
@@ -27193,6 +27300,13 @@ function tailStateMatches(
   for (let index = 0; index < lines.length; index++) {
     if (lines[index] !== snapshot.lines[index]) {
       return false
+    }
+  }
+  if (transcriptLines !== snapshot.transcriptLines) {
+    for (let index = 0; index < transcriptLines.length; index++) {
+      if (transcriptLines[index] !== snapshot.transcriptLines[index]) {
+        return false
+      }
     }
   }
   return true
@@ -27253,6 +27367,7 @@ function trimTerminalPreviewToCharacterBudget(
 function readTerminalTail(args: {
   handle: string
   status: RuntimeTerminalState
+  previewLines: string[]
   completedLines: string[]
   partialLine: string
   completedLineCount: number
@@ -27303,7 +27418,7 @@ function readTerminalTail(args: {
   // latest bounded view, while the larger retained buffer remains available
   // through cursor reads plus --limit.
   const limit = terminalReadLimit(args.limit, DEFAULT_TERMINAL_READ_LIMIT)
-  const allLines = buildTailLines(args.completedLines, args.partialLine)
+  const allLines = buildTailLines(args.previewLines, args.partialLine)
   const lineBoundedTail = allLines.slice(-limit)
   const charBoundedTail = trimTerminalPreviewToCharacterBudget(
     lineBoundedTail,
